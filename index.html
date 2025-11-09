@@ -1,48 +1,149 @@
-<div>
-  <h2 class="font-semibold mb-2">ویرایش رزومه</h2>
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>رزومه آنلاین</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css">
+</head>
+<body class="bg-gray-50 p-6">
+  <div id="app" class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">رزومه آنلاین</h1>
 
-  <!-- اطلاعات شخصی -->
-  <div class="mb-2">
-    <input v-model="resume.name" placeholder="نام و نام خانوادگی" class="border p-1 w-full rounded">
-  </div>
-  <div class="mb-2">
-    <input v-model="resume.title" placeholder="عنوان شغلی" class="border p-1 w-full rounded">
-  </div>
-  <div class="mb-2">
-    <textarea v-model="resume.summary" placeholder="خلاصه رزومه" class="border p-1 w-full rounded"></textarea>
-  </div>
-
-  <!-- تجربه کاری -->
-  <div class="mb-2">
-    <h3 class="font-semibold">تجربه کاری</h3>
-    <div v-for="(job, index) in resume.experience" :key="index" class="mb-1">
-      <input v-model="job.position" placeholder="سمت" class="border p-1 w-full rounded mb-1">
-      <input v-model="job.company" placeholder="شرکت" class="border p-1 w-full rounded mb-1">
-      <input v-model="job.years" placeholder="سال‌ها" class="border p-1 w-full rounded mb-1">
-      <button @click="resume.experience.splice(index,1)" class="text-red-500 text-sm mb-2">حذف</button>
+    <!-- انتخاب قالب -->
+    <div class="mb-4">
+      <label>انتخاب قالب: </label>
+      <select v-model="selectedTemplate" class="border p-1 rounded ml-2">
+        <option v-for="t in templates" :key="t">{{ t }}</option>
+      </select>
     </div>
-    <button @click="resume.experience.push({position:'',company:'',years:''})" class="p-1 border rounded text-sm">افزودن تجربه</button>
+
+    <!-- ذخیره و بارگذاری -->
+    <div class="mb-4">
+      <button @click="saveJSON" class="p-2 border rounded mr-2">ذخیره رزومه</button>
+      <input type="file" @change="loadJSON" class="p-1 border rounded">
+    </div>
+
+    <!-- پرینت PDF -->
+    <div class="mb-4">
+      <button @click="window.print()" class="p-2 border rounded">پرینت PDF</button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+
+      <!-- فرم ویرایش و پیش‌نمایش editable -->
+      <div>
+        <h2 class="font-semibold mb-2">ویرایش و پیش‌نمایش</h2>
+        <div class="p-4 border rounded bg-white">
+
+          <!-- نام و عنوان -->
+          <input v-model="resume.name" placeholder="نام و نام خانوادگی" class="border p-1 w-full rounded mb-2">
+          <input v-model="resume.title" placeholder="عنوان شغلی" class="border p-1 w-full rounded mb-2">
+          <textarea v-model="resume.summary" placeholder="خلاصه رزومه" class="border p-1 w-full rounded mb-2"></textarea>
+
+          <!-- تجربه کاری -->
+          <h3 class="font-semibold mt-2">تجربه کاری</h3>
+          <div v-for="(job,index) in resume.experience" :key="index" class="mb-2">
+            <input v-model="resume.experience[index].position" placeholder="سمت" class="border p-1 w-full rounded mb-1">
+            <input v-model="resume.experience[index].company" placeholder="شرکت" class="border p-1 w-full rounded mb-1">
+            <input v-model="resume.experience[index].years" placeholder="سال‌ها" class="border p-1 w-full rounded mb-1">
+            <button @click="resume.experience.splice(index,1)" class="text-red-500 text-sm mb-2">حذف</button>
+          </div>
+          <button @click="resume.experience.push({position:'',company:'',years:''})" class="p-1 border rounded text-sm mb-2">افزودن تجربه</button>
+
+          <!-- تحصیلات -->
+          <h3 class="font-semibold mt-2">تحصیلات</h3>
+          <div v-for="(edu,index) in resume.education" :key="index" class="mb-2">
+            <input v-model="resume.education[index].degree" placeholder="مدرک" class="border p-1 w-full rounded mb-1">
+            <input v-model="resume.education[index].school" placeholder="مدرسه / دانشگاه" class="border p-1 w-full rounded mb-1">
+            <input v-model="resume.education[index].years" placeholder="سال‌ها" class="border p-1 w-full rounded mb-1">
+            <button @click="resume.education.splice(index,1)" class="text-red-500 text-sm mb-2">حذف</button>
+          </div>
+          <button @click="resume.education.push({degree:'',school:'',years:''})" class="p-1 border rounded text-sm mb-2">افزودن تحصیلات</button>
+
+          <!-- مهارت‌ها -->
+          <h3 class="font-semibold mt-2">مهارت‌ها</h3>
+          <div v-for="(skill,index) in resume.skills" :key="index" class="flex mb-2">
+            <input v-model="resume.skills[index]" placeholder="مهارت" class="border p-1 w-full rounded">
+            <button @click="resume.skills.splice(index,1)" class="text-red-500 ml-1">حذف</button>
+          </div>
+          <button @click="resume.skills.push('')" class="p-1 border rounded text-sm mb-2">افزودن مهارت</button>
+
+        </div>
+      </div>
+
+      <!-- پیش‌نمایش ساده قالب انتخاب شده -->
+      <div>
+        <h2 class="font-semibold mb-2">پیش‌نمایش قالب ({{ selectedTemplate }})</h2>
+        <div class="p-4 border rounded bg-white min-h-[400px]">
+          <h3 class="text-xl font-bold">{{ resume.name }}</h3>
+          <p class="text-gray-700">{{ resume.title }}</p>
+          <p class="text-gray-600 mb-2">{{ resume.summary }}</p>
+
+          <div v-if="resume.experience.length">
+            <h4 class="font-semibold">تجربه کاری:</h4>
+            <ul class="list-disc ml-5 mb-2">
+              <li v-for="job in resume.experience">{{ job.position }} در {{ job.company }} ({{ job.years }})</li>
+            </ul>
+          </div>
+
+          <div v-if="resume.education.length">
+            <h4 class="font-semibold">تحصیلات:</h4>
+            <ul class="list-disc ml-5 mb-2">
+              <li v-for="edu in resume.education">{{ edu.degree }} از {{ edu.school }} ({{ edu.years }})</li>
+            </ul>
+          </div>
+
+          <div v-if="resume.skills.length">
+            <h4 class="font-semibold">مهارت‌ها:</h4>
+            <ul class="list-disc ml-5">
+              <li v-for="skill in resume.skills">{{ skill }}</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- تحصیلات -->
-  <div class="mb-2">
-    <h3 class="font-semibold">تحصیلات</h3>
-    <div v-for="(edu, index) in resume.education" :key="index" class="mb-1">
-      <input v-model="edu.degree" placeholder="مدرک" class="border p-1 w-full rounded mb-1">
-      <input v-model="edu.school" placeholder="مدرسه / دانشگاه" class="border p-1 w-full rounded mb-1">
-      <input v-model="edu.years" placeholder="سال‌ها" class="border p-1 w-full rounded mb-1">
-      <button @click="resume.education.splice(index,1)" class="text-red-500 text-sm mb-2">حذف</button>
-    </div>
-    <button @click="resume.education.push({degree:'',school:'',years:''})" class="p-1 border rounded text-sm">افزودن تحصیلات</button>
-  </div>
-
-  <!-- مهارت‌ها -->
-  <div class="mb-2">
-    <h3 class="font-semibold">مهارت‌ها</h3>
-    <div v-for="(skill,index) in resume.skills" :key="index" class="flex mb-1">
-      <input v-model="resume.skills[index]" placeholder="مهارت" class="border p-1 w-full rounded">
-      <button @click="resume.skills.splice(index,1)" class="text-red-500 ml-1">حذف</button>
-    </div>
-    <button @click="resume.skills.push('')" class="p-1 border rounded text-sm mt-1">افزودن مهارت</button>
-  </div>
-</div>
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        templates: Array.from({length: 15}, (_, i) => `قالب ${i+1}`),
+        selectedTemplate: 'قالب 1',
+        resume: {
+          name: '',
+          title: '',
+          summary: '',
+          experience: [],
+          education: [],
+          skills: []
+        }
+      },
+      methods: {
+        saveJSON() {
+          const blob = new Blob([JSON.stringify(this.resume, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'resume.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+        loadJSON(event) {
+          const file = event.target.files[0];
+          const reader = new FileReader();
+          reader.onload = e => {
+            try { this.resume = JSON.parse(e.target.result); alert('رزومه بارگذاری شد!'); }
+            catch { alert('فایل JSON معتبر نیست'); }
+          };
+          reader.readAsText(file);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
